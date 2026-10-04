@@ -1,0 +1,22 @@
+# 构建产物
+sdslite
+sdslite_test
+sdslite_test_asan
+sdslite_test_tsan
+sdslite.exe
+sdslite_test.exe
+*.o
+*.obj
+
+# 运行时产物
+test_tmp/
+sdslite_crash_wal
+sdslite_bench_wal
+sdslite_bench_cow
+bench.txt
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

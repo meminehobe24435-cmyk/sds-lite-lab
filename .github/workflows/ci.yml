@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · ${{ matrix.cxx }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            cxx: g++
+          - os: ubuntu-latest
+            cxx: clang++
+          - os: macos-latest
+            cxx: clang++
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 编译器版本
+        run: ${{ matrix.cxx }} --version | head -1
+
+      - name: 构建
+        run: make CXX=${{ matrix.cxx }} all
+
+      - name: 单元测试（164 项）
+        run: make CXX=${{ matrix.cxx }} test
+
+      - name: 崩溃一致性（反复掉电 + 撕裂写）
+        run: python3 tools/crash_test.py --bin ./sdslite --max-n 60
+
+      - name: 基准（只跑一遍，确认不崩）
+        run: ./sdslite --bench > bench.txt && head -30 bench.txt
+
+  sanitizer:
+    name: AddressSanitizer + UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 用 ASan/UBSan 重跑全部测试
+        run: make CXX=g++ asan
+
+  tsan:
+    name: ThreadSanitizer（并发用例）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 用 TSan 重跑（查数据竞争）
+        run: make CXX=g++ tsan
+
+  lint:
+    name: 严格编译（-Werror）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 以 -Werror 编译全部源文件
+        run: |
+          for f in src/*.cpp tests/*.cpp; do
+            g++ -std=c++17 -O2 -Wall -Wextra -Wpedantic -Werror -pthread -Iinclude -c "$f" -o /dev/null
+          done
+          echo "全部源文件在 -Werror 下编译通过"
+
+      - name: 换优化等级复跑（-O0 / -O3）
+        run: |
+          make clean >/dev/null
+          make CXX=g++ CXXFLAGS="-std=c++17 -O0 -Wall -Wextra -pthread" test
+          make clean >/dev/null
+          make CXX=g++ CXXFLAGS="-std=c++17 -O3 -Wall -Wextra -pthread" test
