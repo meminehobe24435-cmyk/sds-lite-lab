@@ -159,6 +159,17 @@ make tsan      # 用 ThreadSanitizer 重跑并发用例
 7. **`truncate()` 在 Windows 上不存在、`ftruncate()` 才是可移植写法**
    WAL 重置原本用 `truncate(path, 0)`，在 Windows 上直接编译不过。
 
+8. **AddressSanitizer 抓到两处单元测试抓不到的泄漏**
+   ① `LruCache` 用裸指针维护双向链表却**没有析构函数** —— 对象一销毁整张链表全泄漏；
+   ② 测试代码里误写 `wal.replay(*(new std::vector<std::string>()))`，漏掉一个 vector。
+   这两个问题跑多少遍断言都不会暴露（值都是对的），只有开着 sanitizer 才会现形 ——
+   所以 CI 里专门有 ASan/UBSan 与 TSan 两条流水线。
+
+9. **CI 在 Linux/macOS 全红、本地 Windows 却是绿的（跨平台头文件）**
+   ① `::mkdir` 在 POSIX 下声明在 `<sys/stat.h>` 里，只包含 `<unistd.h>` 编译不过；
+   ② `O_BINARY` 定义在 `posix_compat.h` 里，`main.cpp` 漏了这个 include。
+   教训：**"本机能编过"不等于"能编过"** —— 三平台 CI 是唯一可信的判据。
+
 ## 边界与已知限制
 
 **做过的**：GF(256) 运算、Reed-Solomon 编解码与重建、一致性哈希与副本放置、
