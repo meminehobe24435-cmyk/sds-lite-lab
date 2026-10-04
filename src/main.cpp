@@ -11,6 +11,7 @@
  * 这才是"掉电"的语义；用 exit 会把缓冲区刷下去，测试就白做了。
  *============================================================================*/
 #include "sdslite.h"
+#include "posix_compat.h"   // O_BINARY / fsync / pread 的可移植定义（POSIX 下 O_BINARY=0）
 
 #include <algorithm>
 #include <cstdio>
