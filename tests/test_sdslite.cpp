@@ -20,6 +20,8 @@
 #include <io.h>
 #else
 #include <unistd.h>
+#include <sys/stat.h>   // POSIX 的 mkdir 在这里；少这个头文件在 Linux/macOS 上直接编译不过
+#include <sys/types.h>
 #endif
 
 using namespace sds;
@@ -406,7 +408,8 @@ static void test_concurrency() {
     {
         std::vector<std::thread> ts;
         for (int t = 0; t < nthreads; t++) {
-            ts.emplace_back([&st, t, per_thread] {
+            // per_thread 是 const int，不需要捕获（clang 会报 -Wunused-lambda-capture）
+            ts.emplace_back([&st, t] {
                 for (int i = 0; i < per_thread; i++) {
                     std::string data(4096, static_cast<char>('A' + t));
                     st.write(static_cast<uint64_t>(t) * 100000 + i, data);
