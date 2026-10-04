@@ -313,7 +313,8 @@ static void test_wal() {
     // ---- reset ----
     {
         WriteAheadLog wal(p);
-        wal.replay(*(new std::vector<std::string>()));
+        std::vector<std::string> ignore;
+        wal.replay(ignore);
         CHECK(wal.reset().ok(), "reset 应成功");
         std::vector<std::string> recs;
         wal.replay(recs);

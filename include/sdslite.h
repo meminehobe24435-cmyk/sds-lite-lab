@@ -274,6 +274,11 @@ private:
 class LruCache {
 public:
     explicit LruCache(size_t capacity);
+    /* ⚠️ 必须有析构：缓存用裸指针维护双向链表，不写析构就会把整张链表漏掉。
+     *    这正是 AddressSanitizer 抓出来的第一个真问题（单元测试完全看不出来）。 */
+    ~LruCache();
+    LruCache(const LruCache&) = delete;
+    LruCache& operator=(const LruCache&) = delete;
 
     bool get(const std::string& key, std::string& out);
     void put(const std::string& key, const std::string& value);

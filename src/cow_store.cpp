@@ -102,6 +102,14 @@ Status CowBlockStore::drop_snapshot(uint64_t snap_id) {
 
 LruCache::LruCache(size_t capacity) : cap_(capacity ? capacity : 1) {}
 
+LruCache::~LruCache() {
+    // 释放整条双向链表（clear() 也做同样的事，这里不能省 —— 否则对象析构时全泄漏）
+    Node* cur = head_;
+    while (cur) { Node* nx = cur->next; delete cur; cur = nx; }
+    head_ = tail_ = nullptr;
+    index_.clear();
+}
+
 void LruCache::unlink(Node* n) {
     if (n->prev) n->prev->next = n->next; else head_ = n->next;
     if (n->next) n->next->prev = n->prev; else tail_ = n->prev;
